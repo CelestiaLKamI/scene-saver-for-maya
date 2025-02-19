@@ -16,9 +16,9 @@ def get_maya_main_window():
 class SceneSaver(QMainWindow):
     def __init__(self, parent = get_maya_main_window()):
         super(SceneSaver, self).__init__(parent)
-
+        # Set the window title
         self.setWindowTitle("Scene Saver")
-
+        # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
         single_scene_rbtn = QRadioButton("Single Scene")
         cinematic_scene_rbtn = QRadioButton("Cinematic Scene")
@@ -82,7 +82,7 @@ class SceneSaver(QMainWindow):
 
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.close)
-
+        # Set the layout
         gbox = QGridLayout()
 
         gbox.addWidget(project_type_lbl, 0, 0)
@@ -137,24 +137,27 @@ class SceneSaver(QMainWindow):
 
         gbox.addWidget(save_btn, 12, 4)
         gbox.addWidget(cancel_btn, 12, 5, 1, 2)
-
+        # Set the main layout
         main_layout = QWidget()
         main_layout.setLayout(gbox)
         self.setCentralWidget(main_layout)
 
     def browse_project_path(self):
+        """Browse project path dialog."""
         self.project_path = cmds.fileDialog2(fileMode=3, dialogStyle=2, caption="Select Project Directory")
         if self.project_path:
             self.project_path_le.setText(self.project_path[0])
-            self.populate_tree()
+            self.populate_tree() # Populate the folder structure preview tree
 
     def populate_tree(self):
+        """Populate the folder structure preview tree."""
         self.folder_structure_preview_tw.clear()
         root_item = QTreeWidgetItem([os.path.basename(self.project_path[0])])
         self.folder_structure_preview_tw.addTopLevelItem(root_item)
         # self.add_subfolders(root_item, self.project_path)
 
     def close(self):
+        """Overriding the close method."""
         return super().close()
 
 def scene_saver():
