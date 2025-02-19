@@ -16,8 +16,10 @@ def get_maya_main_window():
 class SceneSaver(QMainWindow):
     def __init__(self, parent = get_maya_main_window()):
         super(SceneSaver, self).__init__(parent)
+
         # Set the window title
         self.setWindowTitle("Scene Saver")
+        
         # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
         single_scene_rbtn = QRadioButton("Single Scene")
@@ -82,6 +84,7 @@ class SceneSaver(QMainWindow):
 
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.close)
+
         # Set the layout
         gbox = QGridLayout()
 
@@ -137,6 +140,7 @@ class SceneSaver(QMainWindow):
 
         gbox.addWidget(save_btn, 12, 4)
         gbox.addWidget(cancel_btn, 12, 5, 1, 2)
+
         # Set the main layout
         main_layout = QWidget()
         main_layout.setLayout(gbox)
