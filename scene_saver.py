@@ -4,7 +4,7 @@ import maya.utils as utils
 from shiboken2 import wrapInstance
 import os
 from PySide2.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QRadioButton, QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QTreeWidget, QTreeWidgetItem
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, QRect
 
 def get_maya_main_window():
     """
@@ -32,17 +32,17 @@ class SceneSaver(QMainWindow):
         project_path_browse_btn.clicked.connect(self.browse_project_path)
 
         episode_lbl = QLabel("Episode:")
-        self.episode_le = QLineEdit()
+        self.episode_cb = QComboBox()
 
         sequence_lbl = QLabel("Sequence:")
-        self.sequence_le = QLineEdit()
+        self.sequence_cb = QComboBox()
 
         shot_lbl = QLabel("Shot:")
-        self.shot_le = QLineEdit()
+        self.shot_cb = QComboBox()
 
         department_lbl = QLabel("Department:")
         self.department_cb = QComboBox()
-        self.department_cb.addItems(["Modeling", "Rigging", "Animation", "Lighting", "FX", "Compositing"])
+        self.department_cb.addItems(["Modeling", "Rigging", "Layout", "Animation", "Lighting", "FX"])
         self.department_cb.setCurrentIndex(0)
 
         tags_lbl = QLabel("Tags:")
@@ -53,7 +53,7 @@ class SceneSaver(QMainWindow):
 
         file_type_lbl = QLabel("File Type:")
         self.file_type_cb = QComboBox()
-        self.file_type_cb.addItems(["Maya ASCII (*.ma)", "Maya Binary (*.mb)"])
+        self.file_type_cb.addItems(["*.ma", "*.mb"])
         self.file_type_cb.setCurrentIndex(0)
 
         bkp_prev_chkbox = QCheckBox("Backup Previous Version")
@@ -85,6 +85,10 @@ class SceneSaver(QMainWindow):
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.close)
 
+        hbox = QHBoxLayout()
+        hbox.addWidget(save_btn)
+        hbox.addWidget(cancel_btn)
+
         # Set the layout
         gbox = QGridLayout()
 
@@ -98,13 +102,13 @@ class SceneSaver(QMainWindow):
         gbox.addWidget(project_path_browse_btn, 2, 3)
 
         gbox.addWidget(episode_lbl, 3, 0)
-        gbox.addWidget(self.episode_le, 4, 0)
+        gbox.addWidget(self.episode_cb, 4, 0)
 
         gbox.addWidget(sequence_lbl, 3, 1)
-        gbox.addWidget(self.sequence_le, 4, 1)
+        gbox.addWidget(self.sequence_cb, 4, 1)
 
         gbox.addWidget(shot_lbl, 3, 2)
-        gbox.addWidget(self.shot_le, 4, 2)
+        gbox.addWidget(self.shot_cb, 4, 2)
 
         gbox.addWidget(department_lbl, 3, 3)
         gbox.addWidget(self.department_cb, 4, 3)
@@ -135,15 +139,18 @@ class SceneSaver(QMainWindow):
 
         gbox.addWidget(time_lbl, 12, 3)
 
-        gbox.addWidget(foleder_structure_preview_lbl, 0, 4)
-        gbox.addWidget(self.folder_structure_preview_tw, 1, 4, 11, 3)
+        vbox = QVBoxLayout()
+        vbox.addWidget(foleder_structure_preview_lbl)
+        vbox.addWidget(self.folder_structure_preview_tw)
+        vbox.addLayout(hbox)
 
-        gbox.addWidget(save_btn, 12, 4)
-        gbox.addWidget(cancel_btn, 12, 5, 1, 2)
+        hbox2 = QHBoxLayout()
+        hbox2.addLayout(gbox)
+        hbox2.addLayout(vbox)
 
         # Set the main layout
         main_layout = QWidget()
-        main_layout.setLayout(gbox)
+        main_layout.setLayout(hbox2)
         self.setCentralWidget(main_layout)
 
     def browse_project_path(self):
@@ -158,7 +165,17 @@ class SceneSaver(QMainWindow):
         self.folder_structure_preview_tw.clear()
         root_item = QTreeWidgetItem([os.path.basename(self.project_path[0])])
         self.folder_structure_preview_tw.addTopLevelItem(root_item)
-        # self.add_subfolders(root_item, self.project_path)
+        self.add_subfolders(root_item, self.project_path[0])
+
+    def add_subfolders(self, parent_item, parent_path):
+        """Add subfolders and files to the tree."""
+        for item in os.listdir(parent_path):
+            item_path = os.path.join(parent_path, item)
+            if os.path.isdir(item_path):
+                trw_item = QTreeWidgetItem([item])
+                parent_item.addChild(trw_item)
+
+                self.add_subfolders(trw_item, item_path)
 
     def close(self):
         """Overriding the close method."""
