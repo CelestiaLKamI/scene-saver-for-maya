@@ -22,9 +22,12 @@ class SceneSaver(QMainWindow):
         
         # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
-        single_scene_rbtn = QRadioButton("Single Scene")
-        cinematic_scene_rbtn = QRadioButton("Cinematic Scene")
-        episodic_scene_rbtn = QRadioButton("Episodic Scene")
+        self.single_scene_rbtn = QRadioButton("Single Scene")
+        self.single_scene_rbtn.toggled.connect(self.disable_widgets)
+        self.cinematic_scene_rbtn = QRadioButton("Cinematic Scene")
+        self.cinematic_scene_rbtn.toggled.connect(self.disable_widgets)
+        self.episodic_scene_rbtn = QRadioButton("Episodic Scene")
+        self.episodic_scene_rbtn.toggled.connect(self.disable_widgets)
 
         project_path_lbl = QLabel("Project Path:")
         self.project_path_le = QLineEdit()
@@ -93,9 +96,9 @@ class SceneSaver(QMainWindow):
         gbox = QGridLayout()
 
         gbox.addWidget(project_type_lbl, 0, 0)
-        gbox.addWidget(single_scene_rbtn, 0, 1)
-        gbox.addWidget(cinematic_scene_rbtn, 0, 2)
-        gbox.addWidget(episodic_scene_rbtn, 0, 3)
+        gbox.addWidget(self.single_scene_rbtn, 0, 1)
+        gbox.addWidget(self.cinematic_scene_rbtn, 0, 2)
+        gbox.addWidget(self.episodic_scene_rbtn, 0, 3)
 
         gbox.addWidget(project_path_lbl, 1, 0)
         gbox.addWidget(self.project_path_le, 2, 0, 1, 3)
@@ -153,8 +156,34 @@ class SceneSaver(QMainWindow):
         main_layout.setLayout(hbox2)
         self.setCentralWidget(main_layout)
 
+    def disable_widgets(self):
+        """Enable/Disable widgets based on selected scene type."""
+        sender = self.sender()
+
+        if sender == self.single_scene_rbtn:
+            self.episode_cb.setEnabled(False)
+            self.sequence_cb.setEnabled(False)
+            self.shot_cb.setEnabled(False)
+
+        elif sender == self.cinematic_scene_rbtn:
+            self.episode_cb.setEnabled(False)
+            self.sequence_cb.setEnabled(True)
+            self.shot_cb.setEnabled(True)
+            
+        elif sender == self.episodic_scene_rbtn:
+            self.episode_cb.setEnabled(True)
+            self.sequence_cb.setEnabled(True)
+            self.shot_cb.setEnabled(True)
+
     def browse_project_path(self):
         """Browse project path dialog."""
+        self.episode_cb.clear()
+
+        self.ep_dict = {}
+        self.sq_dict = {}
+        self.sh_dict = {}
+
+
         self.project_path = cmds.fileDialog2(fileMode=3, dialogStyle=2, caption="Select Project Directory")
         if self.project_path:
             self.project_path_le.setText(self.project_path[0])
@@ -171,12 +200,36 @@ class SceneSaver(QMainWindow):
         """Add subfolders and files to the tree."""
         for item in os.listdir(parent_path):
             item_path = os.path.join(parent_path, item)
+
             if os.path.isdir(item_path):
                 trw_item = QTreeWidgetItem([item])
                 parent_item.addChild(trw_item)
-
                 self.add_subfolders(trw_item, item_path)
 
+        self.make_project_dict()
+
+    def make_project_dict(self):
+        project_dict = {}
+        project = os.path.basename(self.project_path[0])
+        project_dict[project] = {}
+
+        for ep_item in os.listdir(self.project_path[0]):
+            ep_item_path = os.path.join(self.project_path[0], ep_item)
+
+            if  "ep" in ep_item.lower():
+                project_dict[project][ep_item] = {}
+                
+                for sq_item in os.listdir(ep_item_path):
+                    sq_item_path = os.path.join(ep_item_path, sq_item)
+                    
+                    if "sq" in sq_item.lower():
+                        project_dict[project][ep_item][sq_item] = {}
+                    
+                        for sh_item in os.listdir(sq_item_path):
+                            sh_item_path = os.path.join(sq_item_path, sh_item)
+
+                            if "sh" in sh_item.lower():
+                                project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
     def close(self):
         """Overriding the close method."""
         return super().close()
