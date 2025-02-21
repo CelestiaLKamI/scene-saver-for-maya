@@ -195,6 +195,7 @@ class SceneSaver(QMainWindow):
         root_item = QTreeWidgetItem([os.path.basename(self.project_path[0])])
         self.folder_structure_preview_tw.addTopLevelItem(root_item)
         self.add_subfolders(root_item, self.project_path[0])
+        self.make_project_dict()
 
     def add_subfolders(self, parent_item, parent_path):
         """Add subfolders and files to the tree."""
@@ -206,30 +207,39 @@ class SceneSaver(QMainWindow):
                 parent_item.addChild(trw_item)
                 self.add_subfolders(trw_item, item_path)
 
-        self.make_project_dict()
-
     def make_project_dict(self):
         project_dict = {}
         project = os.path.basename(self.project_path[0])
         project_dict[project] = {}
 
-        for ep_item in os.listdir(self.project_path[0]):
-            ep_item_path = os.path.join(self.project_path[0], ep_item)
+        for item in os.listdir(self.project_path[0]):
+            item_path = os.path.join(self.project_path[0], item)
 
-            if  "ep" in ep_item.lower():
-                project_dict[project][ep_item] = {}
-                
-                for sq_item in os.listdir(ep_item_path):
-                    sq_item_path = os.path.join(ep_item_path, sq_item)
-                    
-                    if "sq" in sq_item.lower():
-                        project_dict[project][ep_item][sq_item] = {}
-                    
-                        for sh_item in os.listdir(sq_item_path):
-                            sh_item_path = os.path.join(sq_item_path, sh_item)
+            for ep_item in os.listdir(item_path):
+                ep_item_path = os.path.join(item_path, ep_item)
 
-                            if "sh" in sh_item.lower():
-                                project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
+                if  "ep" in ep_item.lower() and os.path.isdir(ep_item_path):
+                    project_dict[project][ep_item] = {}
+                    
+                    for sq_item in os.listdir(ep_item_path):
+                        sq_item_path = os.path.join(ep_item_path, sq_item)
+                        
+                        if "sq" in sq_item.lower() and os.path.isdir(sq_item_path):
+                            project_dict[project][ep_item][sq_item] = {}
+                        
+                            for sh_item in os.listdir(sq_item_path):
+                                sh_item_path = os.path.join(sq_item_path, sh_item)
+
+                                if "sh" in sh_item.lower()and os.path.isdir(sh_item_path):
+                                    project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
+
+        print(project_dict)
+        return project_dict
+
+    def update_ep_cb_list(self):
+        """Update the episode combo box list"""
+        
+
     def close(self):
         """Overriding the close method."""
         return super().close()
