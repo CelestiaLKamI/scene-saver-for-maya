@@ -4,7 +4,8 @@ import maya.utils as utils
 from shiboken2 import wrapInstance
 import os
 from PySide2.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QRadioButton, QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QTreeWidget, QTreeWidgetItem
-from PySide2.QtCore import Qt, QRect
+from PySide2.QtCore import Qt, QRect, QTimer
+from datetime import datetime as dt
 
 def get_maya_main_window():
     """
@@ -73,9 +74,10 @@ class SceneSaver(QMainWindow):
         artist_name_lbl = QLabel("Artist Name:")
         self.artist_name_le = QLineEdit()
 
-        date_lbl = QLabel("Date:")
-
-        time_lbl = QLabel("Time:")
+        self.date_lbl = QLabel()
+        self.date_lbl.setAlignment(Qt.AlignCenter)
+        self.time_lbl = QLabel()
+        self.time_lbl.setAlignment(Qt.AlignCenter)
 
         foleder_structure_preview_lbl = QLabel("Folder Structure Preview:")
         self.folder_structure_preview_tw = QTreeWidget()
@@ -138,9 +140,9 @@ class SceneSaver(QMainWindow):
         gbox.addWidget(artist_name_lbl, 11, 0)
         gbox.addWidget(self.artist_name_le, 12, 0, 1, 2)
 
-        gbox.addWidget(date_lbl, 12, 2)
+        gbox.addWidget(self.date_lbl, 12, 2)
 
-        gbox.addWidget(time_lbl, 12, 3)
+        gbox.addWidget(self.time_lbl, 12, 3)
 
         vbox = QVBoxLayout()
         vbox.addWidget(foleder_structure_preview_lbl)
@@ -155,6 +157,8 @@ class SceneSaver(QMainWindow):
         main_layout = QWidget()
         main_layout.setLayout(hbox2)
         self.setCentralWidget(main_layout)
+
+        self.update_date_time()
 
     def disable_widgets(self):
         """Enable/Disable widgets based on selected scene type."""
@@ -178,11 +182,6 @@ class SceneSaver(QMainWindow):
     def browse_project_path(self):
         """Browse project path dialog."""
         self.episode_cb.clear()
-
-        self.ep_dict = {}
-        self.sq_dict = {}
-        self.sh_dict = {}
-
 
         self.project_path = cmds.fileDialog2(fileMode=3, dialogStyle=2, caption="Select Project Directory")
         if self.project_path:
@@ -208,9 +207,9 @@ class SceneSaver(QMainWindow):
                 self.add_subfolders(trw_item, item_path)
 
     def make_project_dict(self):
-        project_dict = {}
+        self.project_dict = {}
         project = os.path.basename(self.project_path[0])
-        project_dict[project] = {}
+        self.project_dict[project] = {}
 
         for item in os.listdir(self.project_path[0]):
             item_path = os.path.join(self.project_path[0], item)
@@ -219,26 +218,75 @@ class SceneSaver(QMainWindow):
                 ep_item_path = os.path.join(item_path, ep_item)
 
                 if  "ep" in ep_item.lower() and os.path.isdir(ep_item_path):
-                    project_dict[project][ep_item] = {}
+                    self.project_dict[project][ep_item] = {}
                     
                     for sq_item in os.listdir(ep_item_path):
                         sq_item_path = os.path.join(ep_item_path, sq_item)
                         
                         if "sq" in sq_item.lower() and os.path.isdir(sq_item_path):
-                            project_dict[project][ep_item][sq_item] = {}
+                            self.project_dict[project][ep_item][sq_item] = {}
                         
                             for sh_item in os.listdir(sq_item_path):
                                 sh_item_path = os.path.join(sq_item_path, sh_item)
 
                                 if "sh" in sh_item.lower()and os.path.isdir(sh_item_path):
-                                    project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
+                                    self.project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
 
-        print(project_dict)
-        return project_dict
+        print(self.project_dict)
+        self.update_ep_cb_list()
 
     def update_ep_cb_list(self):
         """Update the episode combo box list"""
+        self.episode_cb.clear()
+        self.sq_dict = {}
+        self.sh_dict = {}
         
+        if self.project_dict:
+            self.project_name = next(iter(self.project_dict))
+            episodes = self.project_dict[self.project_name].keys()
+
+            if episodes:
+                self.episode_cb.addItems(episodes)
+                self.episode_cb.currentIndexChanged.connect(self.update_sq_cb_list)
+
+                self.episode_cb.setCurrentIndex(0)
+                self.update_sq_cb_list()
+
+    def update_sq_cb_list(self):
+        """Update the sequence combo box list"""
+        self.sequence_cb.clear()
+        
+        self.selected_ep = self.episode_cb.currentText()
+        if self.selected_ep in self.project_dict[self.project_name]:
+            sequences = self.project_dict[self.project_name][self.selected_ep].keys()
+
+            if sequences:
+                self.sequence_cb.addItems(sequences)
+                self.sequence_cb.currentIndexChanged.connect(self.update_sh_cb_list)
+
+                self.sequence_cb.setCurrentIndex(0)
+                self.update_sh_cb_list()
+
+    def update_sh_cb_list(self):
+        """Update the shot combo box list"""
+        self.shot_cb.clear()
+
+        self.selected_sq = self.sequence_cb.currentText()
+        if self.selected_sq in self.project_dict[self.project_name][self.selected_ep]:
+            shots = self.project_dict[self.project_name][self.selected_ep][self.selected_sq].keys()
+            self.shot_cb.addItems(shots)
+
+    def update_date_time(self):
+        """Update the date and time label at the bottom of the UI according to the PC"""
+        now = dt.now()
+        
+        formatted_date = now.strftime("%d/%m/%Y")
+        formatted_time = now.strftime("%H:%M:%S")
+
+        self.date_lbl.setText(formatted_date)
+        self.time_lbl.setText(formatted_time)
+
+        QTimer.singleShot(1000, self.update_date_time)
 
     def close(self):
         """Overriding the close method."""
