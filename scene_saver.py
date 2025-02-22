@@ -6,6 +6,7 @@ import os
 from PySide2.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton, QRadioButton, QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QTreeWidget, QTreeWidgetItem
 from PySide2.QtCore import Qt, QRect, QTimer
 from datetime import datetime as dt
+import json
 
 def get_maya_main_window():
     """
@@ -14,12 +15,54 @@ def get_maya_main_window():
     maya_window = omui.MQtUtil.mainWindow()
     return wrapInstance(int(maya_window), QWidget)
 
+class CustomNameFormat(QMainWindow):
+    def __init__(self, parent = get_maya_main_window()):
+        super(CustomNameFormat, self).__init__(parent)
+
+        self.setWindowTitle("Add Custom name format")
+        self.setMinimumWidth(500)
+
+        add_format_lbl = QLabel("Add Custom File Name Format:")
+        self.add_format_le = QLineEdit()
+
+        add_btn = QPushButton("Save")
+        cancel_btn = QPushButton("Cancel")
+
+        add_btn.clicked.connect(self.add_format_data)
+        cancel_btn.clicked.connect(self.close)
+        
+        layout = QVBoxLayout()
+        layout.addWidget(add_format_lbl)
+        layout.addWidget(self.add_format_le)
+        layout.addWidget(add_btn)
+        layout.addWidget(cancel_btn)
+        
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+    
+    def add_format_data(self):
+        name_format = self.add_format_le.text()
+        # with open
+
+def set_custom_name_format_window():
+    global name_format_window
+    try:
+        name_format_window.close()
+        name_format_window.deleteLater()
+    except:
+        pass
+
+    name_format_window = CustomNameFormat()
+    name_format_window.show()
+
 class SceneSaver(QMainWindow):
     def __init__(self, parent = get_maya_main_window()):
         super(SceneSaver, self).__init__(parent)
 
         # Set the window title
         self.setWindowTitle("Scene Saver")
+        self.setMinimumWidth(900)
         
         # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
@@ -46,11 +89,12 @@ class SceneSaver(QMainWindow):
 
         department_lbl = QLabel("Department:")
         self.department_cb = QComboBox()
-        self.department_cb.addItems(["Modeling", "Rigging", "Layout", "Animation", "Lighting", "FX"])
+        self.department_cb.addItems(["Modeling", "Rigging", "Pre-Vis", "Layout", "Animation", "Lighting", "Match Move", "FX"])
         self.department_cb.setCurrentIndex(0)
 
         tags_lbl = QLabel("Tags:")
         self.tags_cb = QComboBox()
+        self.tags_cb.addItems(["WIP", "RFR", "APP", "REV", "RFT", "RFRD", "RDC", "RFC", "RTP", "PUB", "FNL"])
 
         version_lbl = QLabel("Version:")
         self.version_dsb = QDoubleSpinBox()
@@ -63,10 +107,10 @@ class SceneSaver(QMainWindow):
         bkp_prev_chkbox = QCheckBox("Backup Previous Version")
 
         file_name_format_lbl = QLabel("File Name Format:")
-        self.file_name_format_le = QLineEdit()
+        self.file_name_format_cb = QComboBox()
 
         set_custom_name_format_btn = QPushButton("Set Custom")
-        # set_custom_name_format_btn.clicked.connect(self.set_custom_name_format)
+        set_custom_name_format_btn.clicked.connect(self.set_custom_name_format)
 
         file_name_lbl = QLabel("File Name:")
         self.file_name_le = QLineEdit()
@@ -130,7 +174,7 @@ class SceneSaver(QMainWindow):
         gbox.addWidget(bkp_prev_chkbox, 5, 3, 2, 1)
 
         gbox.addWidget(file_name_format_lbl, 7, 0)
-        gbox.addWidget(self.file_name_format_le, 8, 0, 1, 3)
+        gbox.addWidget(self.file_name_format_cb, 8, 0, 1, 3)
 
         gbox.addWidget(set_custom_name_format_btn, 8, 3)
 
@@ -159,6 +203,7 @@ class SceneSaver(QMainWindow):
         self.setCentralWidget(main_layout)
 
         self.update_date_time()
+        self.update_file_name_format_cb()
 
     def disable_widgets(self):
         """Enable/Disable widgets based on selected scene type."""
@@ -276,15 +321,41 @@ class SceneSaver(QMainWindow):
             shots = self.project_dict[self.project_name][self.selected_ep][self.selected_sq].keys()
             self.shot_cb.addItems(shots)
 
+    def update_file_name_format_cb(self):
+        """Update the file naming format combo box list"""
+
+        file_name_formats = [
+            "{proj}_{dept}_{ver}.{ftype}",
+            "{proj}_{sh}_{ver}.{ftype}",
+            "{dept}_{tag}_{ver}.{ftype}",
+            "{sh}_{dept}_{tag}_{ver}.{ftype}",
+            "{proj}_{sh}_{dept}_bkp_{ver}.{ftype}",
+            "{proj}_{sh}_{dept}_{artist}_{ver}.{ftype}",
+            "{proj}_{sh}_{dept}_{date}_{ver}.{ftype}",
+            "{proj}_{sq}_{sh}_render_{ver}.{ftype}",
+            "{proj}_{sh}_final_render_{date}.{ftype}",
+            "{proj}_{sq}_{sh}_{dept}_bkp_{date}.{ftype}",
+            "{sq}_{sh}_{dept}_{artist}_{tag}_{ver}.{ftype}",
+            "{proj}_{sq}_{sh}_{dept}_{tag}_{ver}.{ftype}",
+            "{proj}_{ep}_{sq}_{sh}_{dept}_{ver}.{ftype}",
+            "{proj}_{ep}_{sq}_{sh}_{dept}_{tag}_{ver}.{ftype}",
+            "{proj}_{sq}_{sh}_{dept}_{artist}_{date}_{time}.{ftype}"
+        ]
+
+        self.file_name_format_cb.addItems(file_name_formats)
+
+    def set_custom_name_format(self):
+        set_custom_name_format_window()
+
     def update_date_time(self):
         """Update the date and time label at the bottom of the UI according to the PC"""
         now = dt.now()
         
-        formatted_date = now.strftime("%d/%m/%Y")
-        formatted_time = now.strftime("%H:%M:%S")
+        self.formatted_date = now.strftime("%d/%m/%Y")
+        self.formatted_time = now.strftime("%H:%M:%S")
 
-        self.date_lbl.setText(formatted_date)
-        self.time_lbl.setText(formatted_time)
+        self.date_lbl.setText(self.formatted_date)
+        self.time_lbl.setText(self.formatted_time)
 
         QTimer.singleShot(1000, self.update_date_time)
 
