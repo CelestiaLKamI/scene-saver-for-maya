@@ -22,6 +22,8 @@ class CustomNameFormat(QMainWindow):
         self.setWindowTitle("Add Custom name format")
         self.setMinimumWidth(500)
 
+        self.file_path = os.path.join(os.path.expanduser("~"), "file_name_formats.json")
+
         add_format_lbl = QLabel("Add Custom File Name Format:")
         self.add_format_le = QLineEdit()
 
@@ -42,16 +44,40 @@ class CustomNameFormat(QMainWindow):
         self.setCentralWidget(container)
     
     def add_format_data(self):
-        name_format = self.add_format_le.text()
-        # with open
+        name_format = self.add_format_le.text().strip()
+        if name_format:
+            data = self.load_existing_data()
+            if name_format not in data["formats"]:
+                data["formats"].append(name_format)
+                self.save_data(data)
+                cmds.inViewMessage(amg='Custom format saved successfully!', pos='topCenter', fade=True)
+            else:
+                cmds.inViewMessage(amg='Format already exists!', pos='topCenter', fade=True)
+        else:
+            cmds.inViewMessage(amg='Input is empty!', pos='topCenter', fade=True)
+    
+    def load_existing_data(self):
+        if os.path.exists(self.file_path):
+            try:
+                with open(self.file_path, 'r') as file:
+                    return json.load(file)
+            except json.JSONDecodeError:
+                return {"formats": []}
+        return {"formats": []}
+    
+    def save_data(self, data):
+        with open(self.file_path, 'w') as file:
+            json.dump(data, file, indent=4)
 
 def set_custom_name_format_window():
     global name_format_window
-    try:
-        name_format_window.close()
-        name_format_window.deleteLater()
-    except:
-        pass
+
+    if 'name_format_window' in globals() and name_format_window is not None:
+        try:
+            name_format_window.close()
+            name_format_window.deleteLater()
+        except:
+            pass
 
     name_format_window = CustomNameFormat()
     name_format_window.show()
@@ -117,6 +143,7 @@ class SceneSaver(QMainWindow):
 
         artist_name_lbl = QLabel("Artist Name:")
         self.artist_name_le = QLineEdit()
+        self.artist_name_le.setReadOnly(True)
 
         self.date_lbl = QLabel()
         self.date_lbl.setAlignment(Qt.AlignCenter)
@@ -204,6 +231,8 @@ class SceneSaver(QMainWindow):
 
         self.update_date_time()
         self.update_file_name_format_cb()
+        self.update_artist()
+        self.create_file_name()
 
     def disable_widgets(self):
         """Enable/Disable widgets based on selected scene type."""
@@ -308,8 +337,8 @@ class SceneSaver(QMainWindow):
             if sequences:
                 self.sequence_cb.addItems(sequences)
                 self.sequence_cb.currentIndexChanged.connect(self.update_sh_cb_list)
-
                 self.sequence_cb.setCurrentIndex(0)
+
                 self.update_sh_cb_list()
 
     def update_sh_cb_list(self):
@@ -321,10 +350,14 @@ class SceneSaver(QMainWindow):
             shots = self.project_dict[self.project_name][self.selected_ep][self.selected_sq].keys()
             self.shot_cb.addItems(shots)
 
-    def update_file_name_format_cb(self):
-        """Update the file naming format combo box list"""
+        if self.shot_cb:
+            self.shot_cb.setCurrentIndex(0)
+            self.shot_cb.currentIndexChanged.connect(self.create_file_name)
 
-        file_name_formats = [
+    def update_file_name_format_cb(self):
+        """Update the file naming format combo box list and save to JSON as a dictionary"""
+        
+        default_formats = [
             "{proj}_{dept}_{ver}.{ftype}",
             "{proj}_{sh}_{ver}.{ftype}",
             "{dept}_{tag}_{ver}.{ftype}",
@@ -339,13 +372,50 @@ class SceneSaver(QMainWindow):
             "{proj}_{sq}_{sh}_{dept}_{tag}_{ver}.{ftype}",
             "{proj}_{ep}_{sq}_{sh}_{dept}_{ver}.{ftype}",
             "{proj}_{ep}_{sq}_{sh}_{dept}_{tag}_{ver}.{ftype}",
-            "{proj}_{sq}_{sh}_{dept}_{artist}_{date}_{time}.{ftype}"
+            "{proj}_{sq}_{sh}_{dept}_{artist}_{date}_{time}.{ftype}",
+            "{proj}_{ep}_{sq}_{sh}_{tag}_{dept}_{artist}_{date}_{time}_{ver}.{ftype}"
         ]
+        
+        file_path = os.path.join(os.path.expanduser("~"), "file_name_formats.json")
 
-        self.file_name_format_cb.addItems(file_name_formats)
+        # Load existing formats if the file exists
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, "r") as file:
+                    existing_data = json.load(file)
+            except json.JSONDecodeError:
+                existing_data = {"formats": []}
+        else:
+            existing_data = {"formats": []}
+
+        # Merge default formats with user-added formats, avoiding duplicates
+        merged_formats = list(set(default_formats + existing_data.get("formats", [])))
+        existing_data["formats"] = merged_formats
+
+        # Save the merged formats back to the JSON file as a dictionary
+        with open(file_path, "w") as file:
+            json.dump(existing_data, file, indent=4)
+
+        # Update the combo box
+        self.file_name_format_cb.clear()
+        self.file_name_format_cb.addItems(merged_formats)
+
+        # if self.file_name_format_cb:
+        #     self.file_name_format_cb.setCurrentIndex(0)
+        self.file_name_format_cb.currentIndexChanged.connect(self.create_file_name)
+
+    def backup_previous(self):
+        """This will backup any files existing with same values from the widgets"""
+        
 
     def set_custom_name_format(self):
         set_custom_name_format_window()
+        QTimer.singleShot(500, self.update_file_name_format_cb)
+
+    def update_artist(self):
+        """Update the artist line edit with the artist name"""
+        self.artist_name = os.environ.get("USER") or os.environ.get("USERNAME")
+        self.artist_name_le.setText(self.artist_name)
 
     def update_date_time(self):
         """Update the date and time label at the bottom of the UI according to the PC"""
@@ -359,19 +429,44 @@ class SceneSaver(QMainWindow):
 
         QTimer.singleShot(1000, self.update_date_time)
 
+    def create_file_name(self):
+        """Creates the file name based on the values set on the widgets by the user"""
+        self.file_name_le.clear()
+
+        proj = os.path.basename(self.project_path_le.text()).replace(" ", "")
+        ep = self.episode_cb.currentText()
+        sq = self.sequence_cb.currentText()
+        sh = self.shot_cb.currentText()
+        tag = self.tags_cb.currentText() 
+        dept = self.department_cb.currentText()
+        artist = self.artist_name_le.text()
+        date = self.date_lbl.text().replace("/", "")
+        time = self.time_lbl.text().replace(":", "")
+        ver = self.version_dsb.value()
+        ftype = self.file_type_cb.currentText()
+
+        selected_name_format = self.file_name_format_cb.currentText()
+        
+        file_name = selected_name_format.format(proj=proj, ep=ep, sq=sq, sh=sh, tag=tag, dept=dept,
+        artist=artist, date=date, time=time, ver=ver, ftype=ftype)
+
+        self.file_name_le.setText(file_name)
+
     def close(self):
         """Overriding the close method."""
         return super().close()
 
 def scene_saver():
-    global my_window
-    try:
-        my_window.close()
-        my_window.deleteLater()
-    except:
-        pass
+    global scene_saver_window
 
-    my_window = SceneSaver()
-    my_window.show()
+    if 'name_format_window' in globals() and scene_saver_window is not None:
+        try:
+            scene_saver_window.close()
+            scene_saver_window.deleteLater()
+        except:
+            pass
+
+    scene_saver_window = SceneSaver()
+    scene_saver_window.show()
 
 scene_saver()
