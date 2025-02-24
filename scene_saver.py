@@ -7,6 +7,7 @@ from PySide2.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QG
 from PySide2.QtCore import Qt, QRect, QTimer
 from datetime import datetime as dt
 import json
+import shutil
 
 def get_maya_main_window():
     """
@@ -92,8 +93,6 @@ class SceneSaver(QMainWindow):
         
         # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
-        self.single_scene_rbtn = QRadioButton("Single Scene")
-        self.single_scene_rbtn.toggled.connect(self.disable_widgets)
         self.cinematic_scene_rbtn = QRadioButton("Cinematic Scene")
         self.cinematic_scene_rbtn.toggled.connect(self.disable_widgets)
         self.episodic_scene_rbtn = QRadioButton("Episodic Scene")
@@ -117,20 +116,24 @@ class SceneSaver(QMainWindow):
         self.department_cb = QComboBox()
         self.department_cb.addItems(["Modeling", "Rigging", "Pre-Vis", "Layout", "Animation", "Lighting", "Match Move", "FX"])
         self.department_cb.setCurrentIndex(0)
+        self.department_cb.currentIndexChanged.connect(self.create_file_name)
 
         tags_lbl = QLabel("Tags:")
         self.tags_cb = QComboBox()
         self.tags_cb.addItems(["WIP", "RFR", "APP", "REV", "RFT", "RFRD", "RDC", "RFC", "RTP", "PUB", "FNL"])
+        self.tags_cb.currentIndexChanged.connect(self.create_file_name)
 
         version_lbl = QLabel("Version:")
         self.version_dsb = QDoubleSpinBox()
+        self.version_dsb.valueChanged.connect(self.create_file_name)
 
         file_type_lbl = QLabel("File Type:")
         self.file_type_cb = QComboBox()
         self.file_type_cb.addItems(["*.ma", "*.mb"])
         self.file_type_cb.setCurrentIndex(0)
+        self.file_type_cb.currentIndexChanged.connect(self.create_file_name)
 
-        bkp_prev_chkbox = QCheckBox("Backup Previous Version")
+        self.bkp_prev_chkbox = QCheckBox("Backup Existing")
 
         file_name_format_lbl = QLabel("File Name Format:")
         self.file_name_format_cb = QComboBox()
@@ -156,7 +159,7 @@ class SceneSaver(QMainWindow):
 
 
         save_btn = QPushButton("Save")
-        # save_btn.clicked.connect(self.save)
+        save_btn.clicked.connect(self.save)
 
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.close)
@@ -169,9 +172,8 @@ class SceneSaver(QMainWindow):
         gbox = QGridLayout()
 
         gbox.addWidget(project_type_lbl, 0, 0)
-        gbox.addWidget(self.single_scene_rbtn, 0, 1)
-        gbox.addWidget(self.cinematic_scene_rbtn, 0, 2)
-        gbox.addWidget(self.episodic_scene_rbtn, 0, 3)
+        gbox.addWidget(self.cinematic_scene_rbtn, 0, 1)
+        gbox.addWidget(self.episodic_scene_rbtn, 0, 2)
 
         gbox.addWidget(project_path_lbl, 1, 0)
         gbox.addWidget(self.project_path_le, 2, 0, 1, 3)
@@ -198,7 +200,7 @@ class SceneSaver(QMainWindow):
         gbox.addWidget(file_type_lbl, 5, 2)
         gbox.addWidget(self.file_type_cb, 6, 2)
 
-        gbox.addWidget(bkp_prev_chkbox, 5, 3, 2, 1)
+        gbox.addWidget(self.bkp_prev_chkbox, 5, 3, 2, 1)
 
         gbox.addWidget(file_name_format_lbl, 7, 0)
         gbox.addWidget(self.file_name_format_cb, 8, 0, 1, 3)
@@ -206,7 +208,7 @@ class SceneSaver(QMainWindow):
         gbox.addWidget(set_custom_name_format_btn, 8, 3)
 
         gbox.addWidget(file_name_lbl, 9, 0)
-        gbox.addWidget(self.file_name_le, 10, 0, 1, 3)
+        gbox.addWidget(self.file_name_le, 10, 0, 1, 5)
 
         gbox.addWidget(artist_name_lbl, 11, 0)
         gbox.addWidget(self.artist_name_le, 12, 0, 1, 2)
@@ -238,17 +240,12 @@ class SceneSaver(QMainWindow):
         """Enable/Disable widgets based on selected scene type."""
         sender = self.sender()
 
-        if sender == self.single_scene_rbtn:
-            self.episode_cb.setEnabled(False)
-            self.sequence_cb.setEnabled(False)
-            self.shot_cb.setEnabled(False)
-
-        elif sender == self.cinematic_scene_rbtn:
+        if sender == self.cinematic_scene_rbtn:
             self.episode_cb.setEnabled(False)
             self.sequence_cb.setEnabled(True)
             self.shot_cb.setEnabled(True)
             
-        elif sender == self.episodic_scene_rbtn:
+        if sender == self.episodic_scene_rbtn:
             self.episode_cb.setEnabled(True)
             self.sequence_cb.setEnabled(True)
             self.shot_cb.setEnabled(True)
@@ -322,7 +319,7 @@ class SceneSaver(QMainWindow):
             if episodes:
                 self.episode_cb.addItems(episodes)
                 self.episode_cb.currentIndexChanged.connect(self.update_sq_cb_list)
-
+                self.episode_cb.currentTextChanged.connect(self.create_file_name)
                 self.episode_cb.setCurrentIndex(0)
                 self.update_sq_cb_list()
 
@@ -337,6 +334,7 @@ class SceneSaver(QMainWindow):
             if sequences:
                 self.sequence_cb.addItems(sequences)
                 self.sequence_cb.currentIndexChanged.connect(self.update_sh_cb_list)
+                self.sequence_cb.currentTextChanged.connect(self.create_file_name)
                 self.sequence_cb.setCurrentIndex(0)
 
                 self.update_sh_cb_list()
@@ -400,13 +398,9 @@ class SceneSaver(QMainWindow):
         self.file_name_format_cb.clear()
         self.file_name_format_cb.addItems(merged_formats)
 
-        # if self.file_name_format_cb:
-        #     self.file_name_format_cb.setCurrentIndex(0)
-        self.file_name_format_cb.currentIndexChanged.connect(self.create_file_name)
-
-    def backup_previous(self):
-        """This will backup any files existing with same values from the widgets"""
-        
+        if self.file_name_format_cb:
+            self.file_name_format_cb.setCurrentIndex(0)
+            self.file_name_format_cb.currentIndexChanged.connect(self.create_file_name)        
 
     def set_custom_name_format(self):
         set_custom_name_format_window()
@@ -442,8 +436,8 @@ class SceneSaver(QMainWindow):
         artist = self.artist_name_le.text()
         date = self.date_lbl.text().replace("/", "")
         time = self.time_lbl.text().replace(":", "")
-        ver = self.version_dsb.value()
-        ftype = self.file_type_cb.currentText()
+        ver = str(self.version_dsb.value()).replace(".", "")
+        ftype = self.file_type_cb.currentText().split("*.")[1]
 
         selected_name_format = self.file_name_format_cb.currentText()
         
@@ -451,6 +445,90 @@ class SceneSaver(QMainWindow):
         artist=artist, date=date, time=time, ver=ver, ftype=ftype)
 
         self.file_name_le.setText(file_name)
+
+    def create_dept_folder(self):
+        """Creates folder as per the department selected in the department combobox widget"""
+        self.selected_sh = self.shot_cb.currentText()
+        dept = self.department_cb.currentText()
+        if not self.project_dict:
+            print("Project structure is not initialized!")
+            return
+
+        try:
+            shot_path = self.project_dict[self.project_name][self.selected_ep][self.selected_sq][self.selected_sh]
+            self.dept_folder = os.path.join(shot_path, dept)
+
+            os.makedirs(self.dept_folder, exist_ok = True)
+
+        except KeyError:
+            print("Invalid project structure selection!")
+            
+    def save(self):
+        """Save the file with user choice for backing up, versioning up manually, or canceling."""
+        self.selected_sh = self.shot_cb.currentText()
+        given_name = self.file_name_le.text()
+
+        if not given_name:
+            print("File name is empty! Generate a file name before saving.")
+            return
+
+        try:
+            self.create_dept_folder()
+            full_path = os.path.join(self.dept_folder, given_name)
+
+            # Check if file exists
+            if os.path.exists(full_path):
+                response = cmds.confirmDialog(
+                    title="File Exists",
+                    message="This file already exists. What would you like to do?",
+                    button=["Backup & Overwrite", "Manually Version Up", "Cancel"],
+                    defaultButton="Cancel",
+                    cancelButton="Cancel",
+                    dismissString="Cancel"
+                )
+
+                if response == "Backup & Overwrite":
+                    if self.bkp_prev_chkbox.isChecked():
+                        self.backup_previous(full_path)
+                    else:
+                        self.bkp_prev_chkbox.setChecked(True)
+                        self.backup_previous(full_path)
+
+                elif response == "Manually Version Up":
+                    print("User chose to manually enter a new version. Update the version field and try saving again.")
+                    return  # Stop execution so the user can manually change the version
+
+                else:  # User clicked "Cancel"
+                    print("File save canceled by user.")
+                    return
+
+            # Rename and save the file in Maya
+            cmds.file(rename=full_path)
+            cmds.file(save=True, type="mayaBinary" if given_name.endswith(".mb") else "mayaAscii")
+
+            print(f"File saved successfully: {full_path}")
+
+        except KeyError:
+            print("Error: Could not determine the file path for saving.")
+
+    def backup_previous(self, file_path):
+        """Backup the previous file if it exists before overwriting."""
+        if os.path.exists(file_path):
+            backup_folder = os.path.join(os.path.dirname(file_path), "backup")
+
+            # Create a backup directory if it doesn't exist
+            os.makedirs(backup_folder, exist_ok=True)
+
+            # Get filename and add timestamp to avoid overwriting backups
+            base_name = os.path.basename(file_path)
+            timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = f"bkp_{timestamp}_{base_name}"
+
+            # Move the existing file to the backup folder
+            backup_path = os.path.join(backup_folder, backup_name)
+            shutil.move(file_path, backup_path)
+
+            print(f"Previous file backed up: {backup_path}")
 
     def close(self):
         """Overriding the close method."""
