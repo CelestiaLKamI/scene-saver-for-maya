@@ -413,7 +413,6 @@ class SceneSaver(QMainWindow):
 
     def set_custom_name_format(self):
         set_custom_name_format_window(self)
-        QTimer.singleShot(500, self.update_file_name_format_cb)
 
     def update_artist(self):
         """Update the artist line edit with the artist name"""
