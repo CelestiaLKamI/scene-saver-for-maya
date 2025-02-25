@@ -17,10 +17,11 @@ def get_maya_main_window():
     return wrapInstance(int(maya_window), QWidget)
 
 class CustomNameFormat(QMainWindow):
-    def __init__(self, parent = get_maya_main_window()):
+    def __init__(self, scene_saver_instance, parent=get_maya_main_window()):
         super(CustomNameFormat, self).__init__(parent)
-
-        self.setWindowTitle("Add Custom name format")
+        
+        self.scene_saver_instance = scene_saver_instance  # Store reference
+        self.setWindowTitle("Add Custom Name Format")
         self.setMinimumWidth(500)
 
         self.file_path = os.path.join(os.path.expanduser("~"), "file_name_formats.json")
@@ -52,6 +53,12 @@ class CustomNameFormat(QMainWindow):
                 data["formats"].append(name_format)
                 self.save_data(data)
                 cmds.inViewMessage(amg='Custom format saved successfully!', pos='topCenter', fade=True)
+
+                # ✅ Update the file name format combo box dynamically
+                if self.scene_saver_instance:
+                    self.scene_saver_instance.update_file_name_format_cb()
+
+                self.close()
             else:
                 cmds.inViewMessage(amg='Format already exists!', pos='topCenter', fade=True)
         else:
@@ -70,7 +77,8 @@ class CustomNameFormat(QMainWindow):
         with open(self.file_path, 'w') as file:
             json.dump(data, file, indent=4)
 
-def set_custom_name_format_window():
+def set_custom_name_format_window(self):
+    """Opens the custom format window and ensures UI updates automatically."""
     global name_format_window
 
     if 'name_format_window' in globals() and name_format_window is not None:
@@ -80,7 +88,7 @@ def set_custom_name_format_window():
         except:
             pass
 
-    name_format_window = CustomNameFormat()
+    name_format_window = CustomNameFormat(self)
     name_format_window.show()
 
 class SceneSaver(QMainWindow):
@@ -93,10 +101,7 @@ class SceneSaver(QMainWindow):
         
         # Initialize the UI
         project_type_lbl = QLabel("Project Type:")
-        self.cinematic_scene_rbtn = QRadioButton("Cinematic Scene")
-        self.cinematic_scene_rbtn.toggled.connect(self.disable_widgets)
-        self.episodic_scene_rbtn = QRadioButton("Episodic Scene")
-        self.episodic_scene_rbtn.toggled.connect(self.disable_widgets)
+        episodic_scene_lbl = QLabel("Episodic")
 
         project_path_lbl = QLabel("Project Path:")
         self.project_path_le = QLineEdit()
@@ -172,8 +177,7 @@ class SceneSaver(QMainWindow):
         gbox = QGridLayout()
 
         gbox.addWidget(project_type_lbl, 0, 0)
-        gbox.addWidget(self.cinematic_scene_rbtn, 0, 1)
-        gbox.addWidget(self.episodic_scene_rbtn, 0, 2)
+        gbox.addWidget(episodic_scene_lbl, 0, 1)
 
         gbox.addWidget(project_path_lbl, 1, 0)
         gbox.addWidget(self.project_path_le, 2, 0, 1, 3)
@@ -236,20 +240,6 @@ class SceneSaver(QMainWindow):
         self.update_artist()
         self.create_file_name()
 
-    def disable_widgets(self):
-        """Enable/Disable widgets based on selected scene type."""
-        sender = self.sender()
-
-        if sender == self.cinematic_scene_rbtn:
-            self.episode_cb.setEnabled(False)
-            self.sequence_cb.setEnabled(True)
-            self.shot_cb.setEnabled(True)
-            
-        if sender == self.episodic_scene_rbtn:
-            self.episode_cb.setEnabled(True)
-            self.sequence_cb.setEnabled(True)
-            self.shot_cb.setEnabled(True)
-
     def browse_project_path(self):
         """Browse project path dialog."""
         self.episode_cb.clear()
@@ -282,29 +272,48 @@ class SceneSaver(QMainWindow):
         project = os.path.basename(self.project_path[0])
         self.project_dict[project] = {}
 
-        for item in os.listdir(self.project_path[0]):
-            item_path = os.path.join(self.project_path[0], item)
+        # Check all items in the project directory
+        for each in os.listdir(self.project_path[0]):
+            item_path = os.path.join(self.project_path[0], each)
 
-            for ep_item in os.listdir(item_path):
-                ep_item_path = os.path.join(item_path, ep_item)
+            if os.path.isdir(item_path):  # Only process directories
+                self.folder_to_dict(item_path, project)
 
-                if  "ep" in ep_item.lower() and os.path.isdir(ep_item_path):
-                    self.project_dict[project][ep_item] = {}
-                    
-                    for sq_item in os.listdir(ep_item_path):
-                        sq_item_path = os.path.join(ep_item_path, sq_item)
-                        
-                        if "sq" in sq_item.lower() and os.path.isdir(sq_item_path):
-                            self.project_dict[project][ep_item][sq_item] = {}
-                        
-                            for sh_item in os.listdir(sq_item_path):
-                                sh_item_path = os.path.join(sq_item_path, sh_item)
-
-                                if "sh" in sh_item.lower()and os.path.isdir(sh_item_path):
-                                    self.project_dict[project][ep_item][sq_item][sh_item] = sh_item_path
-
-        print(self.project_dict)
+        print("Final Project Dict:", self.project_dict)  # Debugging Output
         self.update_ep_cb_list()
+        return self.project_dict  # Return the dictionary if needed
+
+    def folder_to_dict(self, item_path, project):
+        """Recursively populate project dictionary with episode, sequence, and shot structure."""
+        if not os.path.isdir(item_path):
+            return  # Skip non-directory items
+
+        ep_name = os.path.basename(item_path)
+
+        # Ensure the episode folder is added even if it has no sequences
+        if "ep" in ep_name.lower():
+            if ep_name not in self.project_dict[project]:
+                self.project_dict[project][ep_name] = {}
+
+            for sq_item in os.listdir(item_path):
+                sq_item_path = os.path.join(item_path, sq_item)
+
+                if os.path.isdir(sq_item_path) and "sq" in sq_item.lower():
+                    if sq_item not in self.project_dict[project][ep_name]:
+                        self.project_dict[project][ep_name][sq_item] = {}
+
+                    for sh_item in os.listdir(sq_item_path):
+                        sh_item_path = os.path.join(sq_item_path, sh_item)
+
+                        if os.path.isdir(sh_item_path) and "sh" in sh_item.lower():
+                            self.project_dict[project][ep_name][sq_item][sh_item] = sh_item_path
+        else:
+            # If it's not an episode, check if it contains episodes inside
+            for sub_item in os.listdir(item_path):
+                sub_item_path = os.path.join(item_path, sub_item)
+
+                if os.path.isdir(sub_item_path) and "ep" in sub_item.lower():
+                    self.folder_to_dict(sub_item_path, project)
 
     def update_ep_cb_list(self):
         """Update the episode combo box list"""
@@ -403,7 +412,7 @@ class SceneSaver(QMainWindow):
             self.file_name_format_cb.currentIndexChanged.connect(self.create_file_name)        
 
     def set_custom_name_format(self):
-        set_custom_name_format_window()
+        set_custom_name_format_window(self)
         QTimer.singleShot(500, self.update_file_name_format_cb)
 
     def update_artist(self):
@@ -537,7 +546,7 @@ class SceneSaver(QMainWindow):
 def scene_saver():
     global scene_saver_window
 
-    if 'name_format_window' in globals() and scene_saver_window is not None:
+    if 'scene_saver_window' in globals() and scene_saver_window is not None:
         try:
             scene_saver_window.close()
             scene_saver_window.deleteLater()
