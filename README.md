@@ -15,11 +15,38 @@ Scene Saver is a Maya tool designed to simplify the saving workflow for episodic
    ```bash
    git clone <repository-url>
    ```
-2. Copy `scene_saver.py` into your Maya scripts directory.
-3. Run the script in Maya using the following command:
+2. Copy `scene_saver.py` into your Maya scripts directory. The default location is:
+   - Windows: `C:\Users\<YourUser>\Documents\maya\<MayaVersion>\scripts`
+   - macOS: `/Users/<YourUser>/Library/Preferences/Autodesk/maya/<MayaVersion>/scripts`
+   - Linux: `/home/<YourUser>/maya/<MayaVersion>/scripts`
+
+3. Place the `Maya.env` file in the appropriate Maya preferences directory:
+   - Windows: `C:\Users\<YourUser>\Documents\maya\<MayaVersion>\`
+   - macOS: `/Users/<YourUser>/Library/Preferences/Autodesk/maya/<MayaVersion>/`
+   - Linux: `/home/<YourUser>/maya/<MayaVersion>/`
+
+4. If you want to keep the script permanently accessible, add the script path to the `PYTHONPATH` variable inside your `Maya.env` file:
+   ```
+   PYTHONPATH=<path-to-your-scripts-directory>
+   ```
+   Example:
+   ```
+   PYTHONPATH=C:\Users\<YourUser>\Documents\maya\<MayaVersion>\scripts
+   ```
+
+5. If using `userSetup.mel`, place it inside your Maya scripts directory to ensure the tool initializes on startup.
+6. Run the script in Maya using the following command:
    ```python
    import scene_saver
+   scene_saver.open_scene_saver()
    ```
+
+## Changing the Icon Path
+By default, the icon is expected to be in the same directory as the script. If you want to place the icon elsewhere, update **line 567** in `scene_saver.py` to point to the correct path of the icon file. Example:
+```
+icon = os.path.join(os.path.dirname(__file__), "scene_saver_icon.png")
+```
+Modify this line accordingly if the icon is placed in a different location.
 
 ## Dependencies
 Ensure you have the following installed:

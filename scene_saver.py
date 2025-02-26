@@ -25,8 +25,7 @@ class SceneSaver(QMainWindow):
         self.setMinimumWidth(900)
         
         # Initialize the UI
-        project_type_lbl = QLabel("Project Type:")
-        episodic_scene_lbl = QLabel("Episodic")
+        description_label = QLabel("Scene Saver: A tool to streamline scene saving and organization for episodic projects in Maya.")
 
         project_path_lbl = QLabel("Project Path:")
         self.project_path_le = QLineEdit()
@@ -101,8 +100,7 @@ class SceneSaver(QMainWindow):
         # Set the layout
         gbox = QGridLayout()
 
-        gbox.addWidget(project_type_lbl, 0, 0)
-        gbox.addWidget(episodic_scene_lbl, 0, 1)
+        gbox.addWidget(description_label, 0, 0, 1, 5)
 
         gbox.addWidget(project_path_lbl, 1, 0)
         gbox.addWidget(self.project_path_le, 2, 0, 1, 3)
