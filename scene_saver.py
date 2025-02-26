@@ -555,4 +555,23 @@ def scene_saver():
     scene_saver_window = SceneSaver()
     scene_saver_window.show()
 
-scene_saver()
+def create_scene_saver_shelf():
+    """Creates a shelf containing the tool"""
+    shelf_name = "Mayukh_Scripts"
+
+    if cmds.shelfLayout(shelf_name, exists = True):
+        cmds.deleteUI(shelf_name)
+
+    cmds.shelfLayout(shelf_name, patrent = "ShelfLayout")
+
+    icon = "scene_saver_icon.png"
+
+    if not os.path.exists(icon):
+        cmds.warning(f"Icon File not found {icon}")
+
+    cmds.shelfButton(
+        label = "Scene Saver",
+        command = "scene_saver()",
+        image = icon,
+        parent = shelf_name
+    )
