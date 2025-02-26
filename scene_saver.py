@@ -16,81 +16,6 @@ def get_maya_main_window():
     maya_window = omui.MQtUtil.mainWindow()
     return wrapInstance(int(maya_window), QWidget)
 
-class CustomNameFormat(QMainWindow):
-    def __init__(self, scene_saver_instance, parent=get_maya_main_window()):
-        super(CustomNameFormat, self).__init__(parent)
-        
-        self.scene_saver_instance = scene_saver_instance  # Store reference
-        self.setWindowTitle("Add Custom Name Format")
-        self.setMinimumWidth(500)
-
-        self.file_path = os.path.join(os.path.expanduser("~"), "file_name_formats.json")
-
-        add_format_lbl = QLabel("Add Custom File Name Format:")
-        self.add_format_le = QLineEdit()
-
-        add_btn = QPushButton("Save")
-        cancel_btn = QPushButton("Cancel")
-
-        add_btn.clicked.connect(self.add_format_data)
-        cancel_btn.clicked.connect(self.close)
-        
-        layout = QVBoxLayout()
-        layout.addWidget(add_format_lbl)
-        layout.addWidget(self.add_format_le)
-        layout.addWidget(add_btn)
-        layout.addWidget(cancel_btn)
-        
-        container = QWidget()
-        container.setLayout(layout)
-        self.setCentralWidget(container)
-    
-    def add_format_data(self):
-        name_format = self.add_format_le.text().strip()
-        if name_format:
-            data = self.load_existing_data()
-            if name_format not in data["formats"]:
-                data["formats"].append(name_format)
-                self.save_data(data)
-                cmds.inViewMessage(amg='Custom format saved successfully!', pos='topCenter', fade=True)
-
-                # ✅ Update the file name format combo box dynamically
-                if self.scene_saver_instance:
-                    self.scene_saver_instance.update_file_name_format_cb()
-
-                self.close()
-            else:
-                cmds.inViewMessage(amg='Format already exists!', pos='topCenter', fade=True)
-        else:
-            cmds.inViewMessage(amg='Input is empty!', pos='topCenter', fade=True)
-    
-    def load_existing_data(self):
-        if os.path.exists(self.file_path):
-            try:
-                with open(self.file_path, 'r') as file:
-                    return json.load(file)
-            except json.JSONDecodeError:
-                return {"formats": []}
-        return {"formats": []}
-    
-    def save_data(self, data):
-        with open(self.file_path, 'w') as file:
-            json.dump(data, file, indent=4)
-
-def set_custom_name_format_window(self):
-    """Opens the custom format window and ensures UI updates automatically."""
-    global name_format_window
-
-    if 'name_format_window' in globals() and name_format_window is not None:
-        try:
-            name_format_window.close()
-            name_format_window.deleteLater()
-        except:
-            pass
-
-    name_format_window = CustomNameFormat(self)
-    name_format_window.show()
-
 class SceneSaver(QMainWindow):
     def __init__(self, parent = get_maya_main_window()):
         super(SceneSaver, self).__init__(parent)
@@ -554,6 +479,81 @@ def scene_saver():
 
     scene_saver_window = SceneSaver()
     scene_saver_window.show()
+
+class CustomNameFormat(QMainWindow):
+    def __init__(self, scene_saver_instance, parent=get_maya_main_window()):
+        super(CustomNameFormat, self).__init__(parent)
+        
+        self.scene_saver_instance = scene_saver_instance  # Store reference
+        self.setWindowTitle("Add Custom Name Format")
+        self.setMinimumWidth(500)
+
+        self.file_path = os.path.join(os.path.expanduser("~"), "file_name_formats.json")
+
+        add_format_lbl = QLabel("Add Custom File Name Format:")
+        self.add_format_le = QLineEdit()
+
+        add_btn = QPushButton("Save")
+        cancel_btn = QPushButton("Cancel")
+
+        add_btn.clicked.connect(self.add_format_data)
+        cancel_btn.clicked.connect(self.close)
+        
+        layout = QVBoxLayout()
+        layout.addWidget(add_format_lbl)
+        layout.addWidget(self.add_format_le)
+        layout.addWidget(add_btn)
+        layout.addWidget(cancel_btn)
+        
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+    
+    def add_format_data(self):
+        name_format = self.add_format_le.text().strip()
+        if name_format:
+            data = self.load_existing_data()
+            if name_format not in data["formats"]:
+                data["formats"].append(name_format)
+                self.save_data(data)
+                cmds.inViewMessage(amg='Custom format saved successfully!', pos='topCenter', fade=True)
+
+                # ✅ Update the file name format combo box dynamically
+                if self.scene_saver_instance:
+                    self.scene_saver_instance.update_file_name_format_cb()
+
+                self.close()
+            else:
+                cmds.inViewMessage(amg='Format already exists!', pos='topCenter', fade=True)
+        else:
+            cmds.inViewMessage(amg='Input is empty!', pos='topCenter', fade=True)
+    
+    def load_existing_data(self):
+        if os.path.exists(self.file_path):
+            try:
+                with open(self.file_path, 'r') as file:
+                    return json.load(file)
+            except json.JSONDecodeError:
+                return {"formats": []}
+        return {"formats": []}
+    
+    def save_data(self, data):
+        with open(self.file_path, 'w') as file:
+            json.dump(data, file, indent=4)
+
+def set_custom_name_format_window(self):
+    """Opens the custom format window and ensures UI updates automatically."""
+    global name_format_window
+
+    if 'name_format_window' in globals() and name_format_window is not None:
+        try:
+            name_format_window.close()
+            name_format_window.deleteLater()
+        except:
+            pass
+
+    name_format_window = CustomNameFormat(self)
+    name_format_window.show()
 
 def create_scene_saver_shelf():
     """Creates a shelf containing the tool"""
