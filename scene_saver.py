@@ -467,7 +467,7 @@ class SceneSaver(QMainWindow):
         """Overriding the close method."""
         return super().close()
 
-def scene_saver():
+def open_scene_saver():
     global scene_saver_window
 
     if 'scene_saver_window' in globals() and scene_saver_window is not None:
@@ -557,21 +557,22 @@ def set_custom_name_format_window(self):
 
 def create_scene_saver_shelf():
     """Creates a shelf containing the tool"""
-    shelf_name = "Mayukh_Scripts"
+    shelf_name = "MayukhScripts"
 
     if cmds.shelfLayout(shelf_name, exists = True):
         cmds.deleteUI(shelf_name)
 
-    cmds.shelfLayout(shelf_name, patrent = "ShelfLayout")
+    cmds.shelfLayout(shelf_name, parent = "ShelfLayout")
 
-    icon = "scene_saver_icon.png"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    icon = os.path.join(script_dir, "scene_saver_icon.png")
 
     if not os.path.exists(icon):
         cmds.warning(f"Icon File not found {icon}")
 
     cmds.shelfButton(
-        label = "Scene Saver",
-        command = "scene_saver()",
-        image = icon,
-        parent = shelf_name
-    )
+        label="SceneSaver",
+        command="import scene_saver; scene_saver.open_scene_saver()",
+        image=icon,
+        parent=shelf_name
+        )
