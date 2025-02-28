@@ -100,7 +100,7 @@ class SceneSaver(QMainWindow):
         # Set the layout
         gbox = QGridLayout()
 
-        gbox.addWidget(description_label, 0, 0, 1, 5)
+        gbox.addWidget(description_label, 0, 0, 1, 4)
 
         gbox.addWidget(project_path_lbl, 1, 0)
         gbox.addWidget(self.project_path_le, 2, 0, 1, 3)

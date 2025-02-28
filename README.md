@@ -20,12 +20,7 @@ Scene Saver is a Maya tool designed to simplify the saving workflow for episodic
    - macOS: `/Users/<YourUser>/Library/Preferences/Autodesk/maya/<MayaVersion>/scripts`
    - Linux: `/home/<YourUser>/maya/<MayaVersion>/scripts`
 
-3. Place the `Maya.env` file in the appropriate Maya preferences directory:
-   - Windows: `C:\Users\<YourUser>\Documents\maya\<MayaVersion>\`
-   - macOS: `/Users/<YourUser>/Library/Preferences/Autodesk/maya/<MayaVersion>/`
-   - Linux: `/home/<YourUser>/maya/<MayaVersion>/`
-
-4. If you want to keep the script permanently accessible, add the script path to the `PYTHONPATH` variable inside your `Maya.env` file:
+3. If the script is not placed in the default script folder, add its path to the `PYTHONPATH` variable inside your `Maya.env` file:
    ```
    PYTHONPATH=<path-to-your-scripts-directory>
    ```
@@ -34,8 +29,8 @@ Scene Saver is a Maya tool designed to simplify the saving workflow for episodic
    PYTHONPATH=C:\Users\<YourUser>\Documents\maya\<MayaVersion>\scripts
    ```
 
-5. If using `userSetup.mel`, place it inside your Maya scripts directory to ensure the tool initializes on startup.
-6. Run the script in Maya using the following command:
+4. Copy the contents of `userSetup.py` into the `userSetup.py` file located in your Maya scripts directory to ensure the tool auto-loads on startup.
+5. If the tool does not load automatically, run the following command in Maya:
    ```python
    import scene_saver
    scene_saver.open_scene_saver()
