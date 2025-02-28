@@ -1,2 +1,0 @@
-rehash;
-python("from scene_saver import create_scene_saver_shelf; create_scene_saver_shelf()");

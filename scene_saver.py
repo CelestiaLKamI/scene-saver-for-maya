@@ -164,7 +164,9 @@ class SceneSaver(QMainWindow):
         self.create_file_name()
 
     def browse_project_path(self):
-        """Browse project path dialog."""
+        """
+        Browse project path dialog
+        """
         self.episode_cb.clear()
 
         self.project_path = cmds.fileDialog2(fileMode=3, dialogStyle=2, caption="Select Project Directory")
@@ -173,7 +175,9 @@ class SceneSaver(QMainWindow):
             self.populate_tree() # Populate the folder structure preview tree
 
     def populate_tree(self):
-        """Populate the folder structure preview tree."""
+        """
+        Populate the folder structure preview tree
+        """
         self.folder_structure_preview_tw.clear()
         root_item = QTreeWidgetItem([os.path.basename(self.project_path[0])])
         self.folder_structure_preview_tw.addTopLevelItem(root_item)
@@ -181,7 +185,9 @@ class SceneSaver(QMainWindow):
         self.make_project_dict()
 
     def add_subfolders(self, parent_item, parent_path):
-        """Add subfolders and files to the tree."""
+        """
+        Add subfolders and files to the tree
+        """
         for item in os.listdir(parent_path):
             item_path = os.path.join(parent_path, item)
 
@@ -191,6 +197,9 @@ class SceneSaver(QMainWindow):
                 self.add_subfolders(trw_item, item_path)
 
     def make_project_dict(self):
+        """
+        Create a dictionary of the project structure
+        """
         self.project_dict = {}
         project = os.path.basename(self.project_path[0])
         self.project_dict[project] = {}
@@ -207,7 +216,9 @@ class SceneSaver(QMainWindow):
         return self.project_dict  # Return the dictionary if needed
 
     def folder_to_dict(self, item_path, project):
-        """Recursively populate project dictionary with episode, sequence, and shot structure."""
+        """
+        Recursively populate project dictionary with episode, sequence, and shot structure
+        """
         if not os.path.isdir(item_path):
             return  # Skip non-directory items
 
@@ -239,7 +250,9 @@ class SceneSaver(QMainWindow):
                     self.folder_to_dict(sub_item_path, project)
 
     def update_ep_cb_list(self):
-        """Update the episode combo box list"""
+        """
+        Update the episode combo box list and connect signals
+        """
         self.episode_cb.clear()
         self.sq_dict = {}
         self.sh_dict = {}
@@ -256,7 +269,9 @@ class SceneSaver(QMainWindow):
                 self.update_sq_cb_list()
 
     def update_sq_cb_list(self):
-        """Update the sequence combo box list"""
+        """
+        Update the sequence combo box list
+        """
         self.sequence_cb.clear()
         
         self.selected_ep = self.episode_cb.currentText()
@@ -272,7 +287,9 @@ class SceneSaver(QMainWindow):
                 self.update_sh_cb_list()
 
     def update_sh_cb_list(self):
-        """Update the shot combo box list"""
+        """
+        Update the shot combo box list
+        """
         self.shot_cb.clear()
 
         self.selected_sq = self.sequence_cb.currentText()
@@ -285,7 +302,9 @@ class SceneSaver(QMainWindow):
             self.shot_cb.currentIndexChanged.connect(self.create_file_name)
 
     def update_file_name_format_cb(self):
-        """Update the file naming format combo box list and save to JSON as a dictionary"""
+        """
+        Update the file naming format combo box list and save to JSON as a dictionary
+        """
         
         default_formats = [
             "{proj}_{dept}_{ver}.{ftype}",
@@ -338,12 +357,16 @@ class SceneSaver(QMainWindow):
         set_custom_name_format_window(self)
 
     def update_artist(self):
-        """Update the artist line edit with the artist name"""
+        """
+        Update the artist line edit with the artist name
+        """
         self.artist_name = os.environ.get("USER") or os.environ.get("USERNAME")
         self.artist_name_le.setText(self.artist_name)
 
     def update_date_time(self):
-        """Update the date and time label at the bottom of the UI according to the PC"""
+        """
+        Update the date and time label at the bottom of the UI according to the PC
+        """
         now = dt.now()
         
         self.formatted_date = now.strftime("%d/%m/%Y")
@@ -355,7 +378,9 @@ class SceneSaver(QMainWindow):
         QTimer.singleShot(1000, self.update_date_time)
 
     def create_file_name(self):
-        """Creates the file name based on the values set on the widgets by the user"""
+        """
+        Creates the file name based on the values set on the widgets by the user
+        """
         self.file_name_le.clear()
 
         proj = os.path.basename(self.project_path_le.text()).replace(" ", "")
@@ -371,14 +396,18 @@ class SceneSaver(QMainWindow):
         ftype = self.file_type_cb.currentText().split("*.")[1]
 
         selected_name_format = self.file_name_format_cb.currentText()
-        
+
+        # Replace the placeholders with the actual values
         file_name = selected_name_format.format(proj=proj, ep=ep, sq=sq, sh=sh, tag=tag, dept=dept,
         artist=artist, date=date, time=time, ver=ver, ftype=ftype)
 
         self.file_name_le.setText(file_name)
 
     def create_dept_folder(self):
-        """Creates folder as per the department selected in the department combobox widget"""
+        """
+        Creates folder as per the department selected in the department combobox widget
+        
+        """
         self.selected_sh = self.shot_cb.currentText()
         dept = self.department_cb.currentText()
         if not self.project_dict:
@@ -395,7 +424,9 @@ class SceneSaver(QMainWindow):
             print("Invalid project structure selection!")
             
     def save(self):
-        """Save the file with user choice for backing up, versioning up manually, or canceling."""
+        """
+        Save the file with user choice for backing up, versioning up manually, or canceling
+        """
         self.selected_sh = self.shot_cb.currentText()
         given_name = self.file_name_le.text()
 
@@ -443,7 +474,9 @@ class SceneSaver(QMainWindow):
             print("Error: Could not determine the file path for saving.")
 
     def backup_previous(self, file_path):
-        """Backup the previous file if it exists before overwriting."""
+        """
+        Backup the previous file if it exists before overwriting
+        """
         if os.path.exists(file_path):
             backup_folder = os.path.join(os.path.dirname(file_path), "backup")
 
@@ -462,10 +495,15 @@ class SceneSaver(QMainWindow):
             print(f"Previous file backed up: {backup_path}")
 
     def close(self):
-        """Overriding the close method."""
+        """
+        Overriding the close method
+        """
         return super().close()
 
 def open_scene_saver():
+    """
+    Opens the scene saver window
+    """
     global scene_saver_window
 
     if 'scene_saver_window' in globals() and scene_saver_window is not None:
@@ -479,6 +517,9 @@ def open_scene_saver():
     scene_saver_window.show()
 
 class CustomNameFormat(QMainWindow):
+    """
+    Custom Name Format Window
+    """
     def __init__(self, scene_saver_instance, parent=get_maya_main_window()):
         super(CustomNameFormat, self).__init__(parent)
         
@@ -508,6 +549,9 @@ class CustomNameFormat(QMainWindow):
         self.setCentralWidget(container)
     
     def add_format_data(self):
+        """
+        Add the custom format to the JSON file
+        """
         name_format = self.add_format_le.text().strip()
         if name_format:
             data = self.load_existing_data()
@@ -516,7 +560,7 @@ class CustomNameFormat(QMainWindow):
                 self.save_data(data)
                 cmds.inViewMessage(amg='Custom format saved successfully!', pos='topCenter', fade=True)
 
-                # ✅ Update the file name format combo box dynamically
+                # Update the file name format combo box dynamically
                 if self.scene_saver_instance:
                     self.scene_saver_instance.update_file_name_format_cb()
 
@@ -527,6 +571,9 @@ class CustomNameFormat(QMainWindow):
             cmds.inViewMessage(amg='Input is empty!', pos='topCenter', fade=True)
     
     def load_existing_data(self):
+        """
+        Load the existing data from the JSON file
+        """
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, 'r') as file:
@@ -540,7 +587,9 @@ class CustomNameFormat(QMainWindow):
             json.dump(data, file, indent=4)
 
 def set_custom_name_format_window(self):
-    """Opens the custom format window and ensures UI updates automatically."""
+    """
+    Opens the custom format window and ensures UI updates automatically
+    """
     global name_format_window
 
     if 'name_format_window' in globals() and name_format_window is not None:
@@ -552,25 +601,3 @@ def set_custom_name_format_window(self):
 
     name_format_window = CustomNameFormat(self)
     name_format_window.show()
-
-def create_scene_saver_shelf():
-    """Creates a shelf containing the tool"""
-    shelf_name = "MayukhScripts"
-
-    if cmds.shelfLayout(shelf_name, exists = True):
-        cmds.deleteUI(shelf_name)
-
-    cmds.shelfLayout(shelf_name, parent = "ShelfLayout")
-
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    icon = os.path.join(script_dir, "scene_saver_icon.png")
-
-    if not os.path.exists(icon):
-        cmds.warning(f"Icon File not found {icon}")
-
-    cmds.shelfButton(
-        label="SceneSaver",
-        command="import scene_saver; scene_saver.open_scene_saver()",
-        image=icon,
-        parent=shelf_name
-        )
